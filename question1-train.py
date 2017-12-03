@@ -5,7 +5,7 @@ import locale
 import matplotlib.pyplot as plt
 import pandas as pd
 import math
-from keras.models import Sequential
+from keras.models import Sequential, model_from_yaml
 from keras.layers import Dense, Dropout, LSTM
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import mean_squared_error
@@ -53,6 +53,7 @@ testX, testY = create_dataset(test, look_back)
 # reshape input to be [samples, time steps, features]
 trainX = numpy.reshape(trainX, (trainX.shape[0], trainX.shape[1], 2))
 testX = numpy.reshape(testX, (testX.shape[0], testX.shape[1], 2))
+print(testX)
 
 # create and fit the LSTM network
 batch_size = 1
@@ -63,14 +64,23 @@ model.add(LSTM(4, batch_input_shape=(batch_size, look_back, 2)))
 # model.add(Dropout(0.5))
 model.add(Dense(1))
 model.compile(loss='mean_squared_error', optimizer='adam')
-for i in range(500):
+for i in range(100):
 	model.fit(trainX, trainY, epochs=1, batch_size=batch_size, verbose=2, shuffle=False)
 	model.reset_states()
+
+# serialize model to YAML
+model_yaml = model.to_yaml()
+with open("model.yaml", "w") as yaml_file:
+    yaml_file.write(model_yaml)
+# serialize weights to HDF5
+model.save_weights("model.h5")
+print("Saved model to disk")
 
 # make predictions
 trainPredict = model.predict(trainX, batch_size=batch_size)
 model.reset_states()
 testPredict = model.predict(testX, batch_size=batch_size)
+model.reset_states()
 
 # invert predictions
 trainPredict = scaler.inverse_transform(list(map(lambda x:[x, 0], trainPredict)))
